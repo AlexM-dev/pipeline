@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	pipeline2 "pipeline/pipeline"
 	"pipeline/ring"
 	"time"
@@ -27,6 +28,7 @@ func main() {
 					if i >= 0 {
 						select {
 						case stream <- i:
+							log.Printf("Write in stream")
 						case <-done:
 							return
 						}
@@ -52,6 +54,7 @@ func main() {
 					if i%3 == 0 && i != 0 {
 						select {
 						case stream <- i:
+							log.Printf("Write in stream")
 						case <-done:
 							return
 						}
@@ -65,11 +68,13 @@ func main() {
 	buffer := func(done <-chan int, c <-chan int) <-chan int {
 		stream := make(chan int)
 		buf := ring.NewRing(bufferSize)
+		log.Printf("Create buffer")
 		go func() {
 			for {
 				select {
 				case data := <-c:
 					buf.Write(data)
+					log.Printf("Write in buffer")
 				case <-done:
 					return
 				}
@@ -80,10 +85,12 @@ func main() {
 				select {
 				case <-time.After(bufferTime):
 					data := buf.ReadAll()
+					log.Printf("Read buffer")
 					if data != nil {
 						for _, d := range data {
 							select {
 							case stream <- d:
+								log.Printf("Write in stream")
 							case <-done:
 								return
 							}
@@ -105,12 +112,12 @@ func main() {
 					return
 				}
 				fmt.Printf("Результат: %d\n", data)
+				log.Printf("Get result3")
 			case <-done:
 				return
 			}
 		}
 	}
-
 	pipe := pipeline2.NewPipeline()
 	pipe.Init()
 	pipe.AddStage(filterMulti3)
